@@ -90,9 +90,9 @@ The Parameters:
 
 owm: Your OpenWeatherMap API Key (Free at openweathermap.org).
 
-lat: The Latitude of your location (e.g. 51.5).
+lat: The Latitude of your location (e.g. 52.52).
 
-lon: The Longitude of your location (e.g. -0.1).
+lon: The Longitude of your location (e.g. 13.40).
 
 sensor (Optional): The ID of a fine dust sensor from maps.sensor.community (e.g. 12345).
 
