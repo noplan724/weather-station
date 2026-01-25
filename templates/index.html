@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if weather %}
+    <meta http-equiv="refresh" content="300">
+    {% endif %}
+    <title>MacTiny Weather Station</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- FONT --- */
+        @font-face {
+            font-family: 'Chicago';
+            src: url("{{ url_for('static', filename='fonts/ChicagoFLF.ttf') }}") format('truetype');
+            font-weight: normal; font-style: normal;
+        }
+
+        :root {
+            --mac-gray: #DDDDDD;
+            --mac-btn-light: #FFFFFF;
+            --mac-btn-dark: #555555;
+            --mac-black: #000000;
+            --mac-blue: #000099;
+            --mac-stripe: #CCCCFF;
+            --retro-purple: #660099; 
+            --retro-teal: #006666;   
+        }
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: var(--mac-gray); 
+            color: var(--mac-black);
+            font-family: 'Chicago', sans-serif; 
+            margin: 0; padding: 6px;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- STYLES --- */
+        .txt-purple { color: var(--retro-purple) !important; }
+        .txt-teal { color: var(--retro-teal) !important; }
+        .bevel-out { border-top: 2px solid var(--mac-btn-light); border-left: 2px solid var(--mac-btn-light); border-right: 2px solid var(--mac-btn-dark); border-bottom: 2px solid var(--mac-btn-dark); background-color: var(--mac-gray); }
+        .bevel-in { border-top: 2px solid var(--mac-btn-dark); border-left: 2px solid var(--mac-btn-dark); border-right: 2px solid var(--mac-btn-light); border-bottom: 2px solid var(--mac-btn-light); background-color: var(--mac-btn-light); }
+        .mac-window { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--mac-black); box-shadow: 3px 3px 0 rgba(0,0,0,0.2); padding: 3px; background: var(--mac-gray); }
+        .title-bar { height: 24px; background: repeating-linear-gradient(0deg, var(--mac-blue), var(--mac-blue) 2px, var(--mac-stripe) 2px, var(--mac-stripe) 4px); display: flex; align-items: center; justify-content: center; border: 1px solid var(--mac-black); border-bottom: none; position: relative; margin-bottom: 4px; }
+        .close-box { position: absolute; left: 6px; width: 12px; height: 12px; background: var(--mac-gray); border: 1px solid var(--mac-black); box-shadow: inset 1px 1px #fff; }
+        .title-text { background: var(--mac-gray); color: var(--mac-black); font-size: 1rem; padding: 0 8px; border: 1px solid var(--mac-black); -webkit-font-smoothing: none; }
+        .content-area { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .header-panel { flex: 0 0 auto; padding: 2px 0; display: flex; justify-content: center; align-items: center; gap: 10px; background: #fff; }
+        .header-text { font-size: 1.8rem; line-height: 1.2; min-width: 120px; text-align: center; }
+        .main-row { flex: 0 0 auto; display: grid; grid-template-columns: 0.8fr 1.6fr 0.8fr; gap: 6px; }
+        .group-box { position: relative; margin-top: 8px; padding: 10px 4px 6px 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .group-label { position: absolute; top: -9px; left: 8px; background: var(--mac-gray); padding: 0 4px; font-size: 0.8rem; color: #000; }
+        .hero-icon { width: 45px; height: 45px; filter: grayscale(100%) contrast(150%); image-rendering: pixelated; }
+        .hero-temp { font-size: 2.2rem; margin-top: 2px; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; }
+        .d-field { padding: 4px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .d-val { font-size: 1.6rem; font-weight: bold; } 
+        .d-lbl { font-size: 0.9rem; color: #444; margin-top: -2px; }
+        .air-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .air-field { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; }
+        .air-v { font-size: 1.5rem; font-weight: bold; } 
+        .air-l { font-size: 0.9rem; }
+        .charts-row { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-height: 0; overflow: hidden; }
+        .chart-window { display: flex; flex-direction: column; border: 1px solid var(--mac-black); background: var(--mac-gray); padding: 2px; box-shadow: 2px 2px 0 var(--mac-btn-dark); min-width: 0; overflow: hidden; }
+        .chart-header { font-size: 0.8rem; text-align: center; border-bottom: 1px solid #888; margin-bottom: 2px; }
+        .canvas-container { flex: 1; position: relative; background: #fff; border: 1px solid #000; overflow: hidden; }
+        canvas { background-color: #ffffff; }
+
+        /* --- HELP SCREEN --- */
+        .help-container { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 10px; background: #fff; gap: 15px; }
+        .help-block { border-bottom: 1px dotted #999; padding-bottom: 10px; }
+        .help-block:last-child { border-bottom: none; }
+        .help-title { font-weight: bold; margin-bottom: 4px; display: block; font-size: 1.1rem;}
+        .help-text { font-size: 0.9rem; line-height: 1.3; color: #444; margin: 0; }
+        .help-code { display: block; font-family: monospace; background: #eee; padding: 4px; margin-top: 4px; font-size: 0.8rem; border: 1px solid #ccc; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+    <div class="mac-window">
+        <div class="title-bar">
+            <div class="close-box"></div>
+            <div class="title-text">
+                {% if weather %}Weather Station {{ weather.location }}{% else %}Setup Required{% endif %}
+            </div>
+        </div>
+
+        <div class="content-area">
+            
+            <div class="header-panel bevel-in">
+                <span id="live-time" class="header-text">--:--:--</span>
+                <span class="header-text" style="color:#888; min-width:auto;">|</span>
+                <span id="live-date" class="header-text">--/--/----</span>
+            </div>
+
+            {% if weather %}
+            <div class="main-row">
+                <div class="group-box bevel-out">
+                    <span class="group-label">Current</span>
+                    <img class="hero-icon" src="http://openweathermap.org/img/wn/{{ weather.icon }}@2x.png">
+                    <div class="hero-temp">{{ weather.temp }}°</div>
+                </div>
+
+                <div class="group-box bevel-out">
+                    <span class="group-label">Weather</span>
+                    <div class="details-grid">
+                        <div class="d-field bevel-in"><span class="d-val">{{ weather.wind_speed }}</span><span class="d-lbl">Wind</span></div>
+                        <div class="d-field bevel-in"><span class="d-val">{{ weather.pressure }}</span><span class="d-lbl">Press</span></div>
+                        <div class="d-field bevel-in"><span class="d-val">{{ weather.humidity }}</span><span class="d-lbl">Hum</span></div>
+                        <div class="d-field bevel-in"><span class="d-val">{{ weather.visibility }}</span><span class="d-lbl">Vis</span></div>
+                    </div>
+                </div>
+
+                <div class="group-box bevel-out">
+                    <span class="group-label">Air</span>
+                    <div class="air-wrapper">
+                        <div class="air-field bevel-in">
+                            <span class="air-l txt-purple">PM2.5</span>
+                            <span class="air-v txt-purple">{{ weather.pm2_5 }}</span>
+                        </div>
+                        <div class="air-field bevel-in">
+                            <span class="air-l">PM10</span>
+                            <span class="air-v">{{ weather.pm10 }}</span>
+                        </div>
+                        <div class="air-field bevel-in">
+                            <span class="air-l txt-teal">NOx</span>
+                            <span class="air-v txt-teal">{{ weather.nox }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-row">
+                <div class="chart-window">
+                    <div class="chart-header">Temperature (24h)</div>
+                    <div class="canvas-container">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-window">
+                    <div class="chart-header">Air Quality (24h)</div>
+                    <div class="canvas-container">
+                        <canvas id="airChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="help-container bevel-in">
+                <div class="help-block">
+                    <span class="help-title">1. OpenWeatherMap Key</span>
+                    <p class="help-text">
+                        You need a free API Key for weather data.
+                        <br>Register at: <strong>home.openweathermap.org</strong>
+                        <br>Create an "API Key" there.
+                    </p>
+                </div>
+                <div class="help-block">
+                    <span class="help-title">2. Coordinates (Lat / Lon)</span>
+                    <p class="help-text">
+                        Required for accurate local weather.
+                        <br>Open <strong>Google Maps</strong>, right-click your location.
+                        <br>The first two numbers are Lat (Latitude) and Lon (Longitude).
+                    </p>
+                </div>
+                <div class="help-block">
+                    <span class="help-title">3. Sensor ID (Optional)</span>
+                    <p class="help-text">
+                        For local air quality data (particulate matter).
+                        <br>Visit <strong>maps.sensor.community</strong>.
+                        <br>Click a sensor near you. The ID is at the top (e.g., 12345).
+                    </p>
+                </div>
+                <div class="help-block">
+                    <span class="help-title">URL Structure</span>
+                    <p class="help-text">Copy this to your browser and replace the values:</p>
+                    <code class="help-code">
+                        ?owm=YOUR_KEY&lat=51.5&lon=-0.1&sensor=ID
+                    </code>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                            now.getMinutes().toString().padStart(2, '0') + ':' +
+                            now.getSeconds().toString().padStart(2, '0');
+            // Format: MM/DD/YYYY
+            const dateStr = (now.getMonth() + 1).toString().padStart(2, '0') + '/' +
+                            now.getDate().toString().padStart(2, '0') + '/' +
+                            now.getFullYear();
+            const timeEl = document.getElementById('live-time');
+            const dateEl = document.getElementById('live-date');
+            if(timeEl) timeEl.textContent = timeStr;
+            if(dateEl) dateEl.textContent = dateStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        {% if weather %}
+        // --- CHARTS ---
+        const historyData = {{ history | tojson }};
+        const labels = historyData.map(d => d.time_str);
+        
+        Chart.defaults.font.family = "'Chicago', sans-serif";
+        Chart.defaults.font.size = 10;
+
+        const commonOptions = {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0 } },
+            plugins: { legend: { display: false } },
+            scales: { 
+                x: { display: true, ticks: { maxTicksLimit: 5, maxRotation: 0, autoSkip: true, font: { size: 9 }, color: '#000' }, grid: { display: false } },
+                y: { ticks: { color: '#000', maxTicksLimit: 3 }, grid: { color: '#ccc', drawBorder: false } }
+            },
+            layout: { padding: { left: 0, right: 6, top: 2, bottom: 2 } } 
+        };
+
+        const retroBlue = '#000099';
+        const retroPurple = '#660099';
+        const retroTeal = '#006666';
+        const retroBlack = '#000000';
+
+        let chartInstanceTemp = null;
+        let chartInstanceAir = null;
+
+        function renderCharts() {
+            if(!document.getElementById('tempChart') || !document.getElementById('airChart')) return;
+
+            const ctxTemp = document.getElementById('tempChart').getContext('2d');
+            if (chartInstanceTemp != null) chartInstanceTemp.destroy();
+            chartInstanceTemp = new Chart(ctxTemp, {
+                type: 'line', data: { labels: labels, datasets: [{ data: historyData.map(d => d.temp), borderColor: retroBlue, backgroundColor: 'rgba(0,0,153, 0.1)', fill: true }] }, options: commonOptions
+            });
+
+            const ctxAir = document.getElementById('airChart').getContext('2d');
+            if (chartInstanceAir != null) chartInstanceAir.destroy();
+            chartInstanceAir = new Chart(ctxAir, {
+                type: 'line', data: { labels: labels, datasets: [
+                    { data: historyData.map(d => d.pm2_5), borderColor: retroPurple },
+                    { data: historyData.map(d => d.pm10), borderColor: retroBlack },
+                    { data: historyData.map(d => d.nox), borderColor: retroTeal }
+                ]}, options: commonOptions
+            });
+        }
+        if (historyData.length > 0) { setTimeout(renderCharts, 50); }
+        {% endif %}
+    </script>
+</body>
+</html>
