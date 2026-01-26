@@ -45,7 +45,11 @@ Upload the code to your Server/Pi.
 2. Get the Font
 For licensing reasons, the font is not included in this repository.
 
-Download ChicagoFLF here: 1001freefonts.com/chicago.font
+Download ChicagoFLF here:
+```
+https://www.1001freefonts.com/de/chicago.font
+```
+
 
 Unzip the file.
 
