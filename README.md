@@ -85,6 +85,7 @@ python3 app.py
 ```
 The server runs on port 5000 by default. (If you close the console, the server stops. For continuous operation, use systemd or screen.)
 
+
 🖥️ Usage & URL Parameters
 The weather station is configured entirely via the URL. This allows you to share the link with friends so they can use their location and their API keys.
 
@@ -105,6 +106,20 @@ Example Link:
 Replace the placeholders with your actual values (Example: London):
 
 http://192.168.1.50:5000/?owm=your_long_api_key&lat=51.5&lon=-0.1&sensor=12345
+
+
+🖥️ Browser & Kiosk Mode
+For the best experience, Firefox is highly recommended. Chrome or Chromium may cause blurry fonts or rendering glitches.
+
+Install Firefox on Raspberry Pi / Debian:
+
+```
+sudo apt update
+sudo apt install firefox-esr
+```
+
+Fullscreen: Open the URL in Firefox and press F11 to enter fullscreen mode and hide the browser bars.
+
 
 ⚖️ License
 The source code (Python/HTML) is licensed under the MIT License. The font "ChicagoFLF" is subject to its own license terms and is the property of its respective creator.
